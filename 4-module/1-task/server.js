@@ -1,7 +1,7 @@
 const url = require('url');
 const http = require('http');
 const path = require('path');
-const { createReadStream } = require('fs');
+const { createReadStream, existsSync } = require('fs');
 
 const server = new http.Server();
 
@@ -16,14 +16,12 @@ server.on('request', (req, res) => {
     case 'GET':
       readFile.on('error', err => {
         let nesting = req.url.split('/');
-
         if (err.code === 'ENOENT') {
-
           if (nesting.length > 2) {
             res.statusCode = 400;
             res.write('Bad request');
             res.end();
-          } else if (filepath.indexOf(req.url) < 0) {
+          } else if (!existsSync(filepath)) {
             res.statusCode = 404;
             res.write('File not found');
             res.end();
