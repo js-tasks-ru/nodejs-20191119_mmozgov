@@ -1,6 +1,7 @@
 const url = require('url');
 const http = require('http');
 const path = require('path');
+const { createReadStream } = require('fs');
 
 const server = new http.Server();
 
@@ -9,8 +10,36 @@ server.on('request', (req, res) => {
 
   const filepath = path.join(__dirname, 'files', pathname);
 
+  const readFile = createReadStream(filepath);
+
   switch (req.method) {
     case 'GET':
+      readFile.on('error', err => {
+        let nesting = req.url.split('/');
+
+        if (err.code === 'ENOENT') {
+
+          if (nesting.length > 2) {
+            res.statusCode = 400;
+            res.write('Bad request');
+            res.end();
+          } else if (filepath.indexOf(req.url) < 0) {
+            res.statusCode = 404;
+            res.write('File not found');
+            res.end();
+          }
+
+        } else {
+          res.statusCode = 500;
+          res.write('Internal Server Error');
+          res.end();
+        }
+      })
+
+          readFile.pipe(res).on('error', err => {
+            res.statusCode = 500;
+            console.log(`Write error ${err.message}`);
+          });
 
       break;
 
